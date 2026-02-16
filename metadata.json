@@ -1,0 +1,5 @@
+{
+  "name": "E-Ticaret Finans Analizörü",
+  "description": "7 farklı satış kanalı için gelir, gider, kâr ve iade analizlerini Excel verileri üzerinden otomatik hesaplayan yönetim paneli.",
+  "requestFramePermissions": []
+}
