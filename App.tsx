@@ -18,7 +18,7 @@ import { INITIAL_SALES_DATA, INITIAL_EXPENSES } from './initialData';
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#3b82f6'];
 
 // Helper to calculate metrics for a given dataset
-const calculateMetrics = (data: SalesDataRow[], expenses: FixedExpenses, monthFilter: string | 'all', platformFilter: string | 'all'): DashboardMetrics => {
+const calculateMetrics = (data: SalesDataRow[], expenses: FixedExpenses, monthFilter: string | string[] | 'all', platformFilter: string | 'all'): DashboardMetrics => {
     let revenueIncVAT = 0;
     let costOfGoods = 0;
     let commission = 0;
@@ -59,6 +59,7 @@ const calculateMetrics = (data: SalesDataRow[], expenses: FixedExpenses, monthFi
     let marketingExp = 0;
     let operatingExp = 0;
     
+<<<<<<< HEAD
     if (monthFilter !== 'all') {
         if (expenses[monthFilter]) {
              if (platformFilter === 'all') {
@@ -67,6 +68,16 @@ const calculateMetrics = (data: SalesDataRow[], expenses: FixedExpenses, monthFi
              }
         }
     } else {
+=======
+    if (monthFilter !== 'all' && Array.isArray(monthFilter) && monthFilter.length > 0 && monthFilter[0] !== 'all') {
+        monthFilter.forEach(month => {
+            if (expenses[month] && platformFilter === 'all') {
+                marketingExp += expenses[month].marketing;
+                operatingExp += expenses[month].operations;
+            }
+        });
+    } else if (monthFilter === 'all' || (Array.isArray(monthFilter) && monthFilter[0] === 'all')) {
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
         Object.values(expenses).forEach(exp => {
              if (platformFilter === 'all') {
                 marketingExp += exp.marketing;
@@ -110,13 +121,21 @@ function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'channels' | 'monthly'>('overview');
 
   // Global Filter State (Mainly for Overview)
+<<<<<<< HEAD
   const [globalPeriod, setGlobalPeriod] = useState<string>('all');
+=======
+  const [globalPeriod, setGlobalPeriod] = useState<string[]>(['all']);
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
   const [globalChannelFilter, setGlobalChannelFilter] = useState<string>('all');
 
   // Channel Analysis Specific State
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [channelSearchTerm, setChannelSearchTerm] = useState('');
+<<<<<<< HEAD
+=======
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
 
   // Monthly Comparison Specific State
   const [compareMonth1, setCompareMonth1] = useState<string>('');
@@ -211,7 +230,11 @@ function App() {
   // --- DATA PROCESSING FOR OVERVIEW ---
   const overviewData = useMemo(() => {
     return salesData.filter(row => 
+<<<<<<< HEAD
         (globalPeriod === 'all' || row.Ay === globalPeriod) &&
+=======
+        (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay)) &&
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
         (globalChannelFilter === 'all' || row.Platform === globalChannelFilter)
     );
   }, [salesData, globalPeriod, globalChannelFilter]);
@@ -261,7 +284,11 @@ function App() {
   const channelViewMetrics = useMemo(() => {
       const filtered = salesData.filter(row => 
           (channelFilter === 'all' || row.Platform === channelFilter) &&
+<<<<<<< HEAD
           (globalPeriod === 'all' || row.Ay === globalPeriod)
+=======
+          (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
       );
       return calculateMetrics(filtered, fixedExpenses, globalPeriod, channelFilter);
   }, [salesData, fixedExpenses, channelFilter, globalPeriod]);
@@ -278,7 +305,11 @@ function App() {
   const categoryStats = useMemo(() => {
       const filtered = salesData.filter(row => 
           (channelFilter === 'all' || row.Platform === channelFilter) &&
+<<<<<<< HEAD
           (globalPeriod === 'all' || row.Ay === globalPeriod)
+=======
+          (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
       );
       
       // Update structure to hold both qty and revenue for products
@@ -329,7 +360,11 @@ function App() {
 
     const filtered = salesData.filter(row => 
         (channelFilter === 'all' || row.Platform === channelFilter) &&
+<<<<<<< HEAD
         (globalPeriod === 'all' || row.Ay === globalPeriod)
+=======
+        (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
     );
 
     const lowerTerm = channelSearchTerm.toLocaleLowerCase('tr-TR');
@@ -375,7 +410,11 @@ function App() {
   const returnStats = useMemo(() => {
       const filtered = salesData.filter(row => 
           (channelFilter === 'all' || row.Platform === channelFilter) &&
+<<<<<<< HEAD
           (globalPeriod === 'all' || row.Ay === globalPeriod)
+=======
+          (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
       );
       const stats: Record<string, { qty: number, lostAmount: number }> = {};
 
@@ -598,6 +637,7 @@ function App() {
 
                     <span className="text-sm font-medium text-slate-600">Dönem:</span>
                     <div className="relative">
+<<<<<<< HEAD
                         <select 
                             value={globalPeriod}
                             onChange={(e) => setGlobalPeriod(e.target.value)}
@@ -607,6 +647,48 @@ function App() {
                             {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                         <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+=======
+                        <button
+                            onClick={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
+                            className="bg-white border border-slate-300 hover:border-indigo-500 text-slate-700 py-2 px-4 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-200 flex items-center gap-2 w-[160px] whitespace-nowrap"
+                        >
+                            {globalPeriod[0] === 'all' ? 'Tüm Zamanlar' : `${globalPeriod.length} Ay Seçildi`}
+                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isPeriodDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        {isPeriodDropdownOpen && (
+                            <div className="absolute top-full left-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg z-50 min-w-[200px] max-h-[300px] overflow-y-auto">
+                                <label className="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 cursor-pointer border-b border-slate-100">
+                                    <input
+                                        type="checkbox"
+                                        checked={globalPeriod[0] === 'all'}
+                                        onChange={() => setGlobalPeriod(['all'])}
+                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-200"
+                                    />
+                                    <span className="text-sm font-medium text-slate-700">Tüm Zamanlar</span>
+                                </label>
+                                {uniqueMonths.map(month => (
+                                    <label key={month} className="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={globalPeriod[0] !== 'all' && globalPeriod.includes(month)}
+                                            onChange={() => {
+                                                if (globalPeriod[0] === 'all') {
+                                                    setGlobalPeriod([month]);
+                                                } else if (globalPeriod.includes(month)) {
+                                                    const newPeriods = globalPeriod.filter(m => m !== month);
+                                                    setGlobalPeriod(newPeriods.length === 0 ? ['all'] : newPeriods);
+                                                } else {
+                                                    setGlobalPeriod([...globalPeriod, month]);
+                                                }
+                                            }}
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-200"
+                                        />
+                                        <span className="text-sm text-slate-700">{month}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
+>>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
                     </div>
                 </div>
             )}
