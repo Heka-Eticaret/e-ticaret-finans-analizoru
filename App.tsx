@@ -58,15 +58,16 @@ const calculateMetrics = (data: SalesDataRow[], expenses: FixedExpenses, monthFi
     // Fixed Expenses logic
     let marketingExp = 0;
     let operatingExp = 0;
-    
-    if (monthFilter !== 'all' && Array.isArray(monthFilter) && monthFilter.length > 0 && monthFilter[0] !== 'all') {
-        monthFilter.forEach(month => {
+
+    const selectedMonths = typeof monthFilter === 'string' ? [monthFilter] : monthFilter;
+    if (selectedMonths.length > 0 && selectedMonths[0] !== 'all') {
+        selectedMonths.forEach(month => {
             if (expenses[month] && platformFilter === 'all') {
                 marketingExp += expenses[month].marketing;
                 operatingExp += expenses[month].operations;
             }
         });
-    } else if (monthFilter === 'all' || (Array.isArray(monthFilter) && monthFilter[0] === 'all')) {
+    } else {
         Object.values(expenses).forEach(exp => {
              if (platformFilter === 'all') {
                 marketingExp += exp.marketing;
