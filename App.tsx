@@ -59,16 +59,6 @@ const calculateMetrics = (data: SalesDataRow[], expenses: FixedExpenses, monthFi
     let marketingExp = 0;
     let operatingExp = 0;
     
-<<<<<<< HEAD
-    if (monthFilter !== 'all') {
-        if (expenses[monthFilter]) {
-             if (platformFilter === 'all') {
-                marketingExp += expenses[monthFilter].marketing;
-                operatingExp += expenses[monthFilter].operations;
-             }
-        }
-    } else {
-=======
     if (monthFilter !== 'all' && Array.isArray(monthFilter) && monthFilter.length > 0 && monthFilter[0] !== 'all') {
         monthFilter.forEach(month => {
             if (expenses[month] && platformFilter === 'all') {
@@ -77,7 +67,6 @@ const calculateMetrics = (data: SalesDataRow[], expenses: FixedExpenses, monthFi
             }
         });
     } else if (monthFilter === 'all' || (Array.isArray(monthFilter) && monthFilter[0] === 'all')) {
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
         Object.values(expenses).forEach(exp => {
              if (platformFilter === 'all') {
                 marketingExp += exp.marketing;
@@ -121,21 +110,14 @@ function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'channels' | 'monthly'>('overview');
 
   // Global Filter State (Mainly for Overview)
-<<<<<<< HEAD
-  const [globalPeriod, setGlobalPeriod] = useState<string>('all');
-=======
   const [globalPeriod, setGlobalPeriod] = useState<string[]>(['all']);
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
   const [globalChannelFilter, setGlobalChannelFilter] = useState<string>('all');
 
   // Channel Analysis Specific State
   const [channelFilter, setChannelFilter] = useState<string>('all');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [channelSearchTerm, setChannelSearchTerm] = useState('');
-<<<<<<< HEAD
-=======
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false);
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
 
   // Monthly Comparison Specific State
   const [compareMonth1, setCompareMonth1] = useState<string>('');
@@ -230,11 +212,7 @@ function App() {
   // --- DATA PROCESSING FOR OVERVIEW ---
   const overviewData = useMemo(() => {
     return salesData.filter(row => 
-<<<<<<< HEAD
-        (globalPeriod === 'all' || row.Ay === globalPeriod) &&
-=======
         (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay)) &&
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
         (globalChannelFilter === 'all' || row.Platform === globalChannelFilter)
     );
   }, [salesData, globalPeriod, globalChannelFilter]);
@@ -284,11 +262,7 @@ function App() {
   const channelViewMetrics = useMemo(() => {
       const filtered = salesData.filter(row => 
           (channelFilter === 'all' || row.Platform === channelFilter) &&
-<<<<<<< HEAD
-          (globalPeriod === 'all' || row.Ay === globalPeriod)
-=======
           (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
       );
       return calculateMetrics(filtered, fixedExpenses, globalPeriod, channelFilter);
   }, [salesData, fixedExpenses, channelFilter, globalPeriod]);
@@ -305,11 +279,7 @@ function App() {
   const categoryStats = useMemo(() => {
       const filtered = salesData.filter(row => 
           (channelFilter === 'all' || row.Platform === channelFilter) &&
-<<<<<<< HEAD
-          (globalPeriod === 'all' || row.Ay === globalPeriod)
-=======
           (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
       );
       
       // Update structure to hold both qty and revenue for products
@@ -360,11 +330,7 @@ function App() {
 
     const filtered = salesData.filter(row => 
         (channelFilter === 'all' || row.Platform === channelFilter) &&
-<<<<<<< HEAD
-        (globalPeriod === 'all' || row.Ay === globalPeriod)
-=======
         (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
     );
 
     const lowerTerm = channelSearchTerm.toLocaleLowerCase('tr-TR');
@@ -410,11 +376,7 @@ function App() {
   const returnStats = useMemo(() => {
       const filtered = salesData.filter(row => 
           (channelFilter === 'all' || row.Platform === channelFilter) &&
-<<<<<<< HEAD
-          (globalPeriod === 'all' || row.Ay === globalPeriod)
-=======
           (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
       );
       const stats: Record<string, { qty: number, lostAmount: number }> = {};
 
@@ -637,17 +599,6 @@ function App() {
 
                     <span className="text-sm font-medium text-slate-600">Dönem:</span>
                     <div className="relative">
-<<<<<<< HEAD
-                        <select 
-                            value={globalPeriod}
-                            onChange={(e) => setGlobalPeriod(e.target.value)}
-                            className="appearance-none bg-white border border-slate-300 hover:border-indigo-500 text-slate-700 py-2 pl-4 pr-10 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                        >
-                            <option value="all">Tüm Zamanlar</option>
-                            {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
-                        </select>
-                        <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-=======
                         <button
                             onClick={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
                             className="bg-white border border-slate-300 hover:border-indigo-500 text-slate-700 py-2 px-4 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-200 flex items-center gap-2 w-[160px] whitespace-nowrap"
@@ -688,7 +639,6 @@ function App() {
                                 ))}
                             </div>
                         )}
->>>>>>> 0a17fcdc5a28c4fff60e3d64a40be0a7cacc0408
                     </div>
                 </div>
             )}
