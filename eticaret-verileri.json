@@ -62749,7 +62749,7 @@
       "UrunAciklamasi": "Heka 3 Renkli Led Filament Rustik Ampul 6W E14 C35 ERD-260",
       "UrunAdedi": 3,
       "AlisFiyati": 236.92499999999998,
-      "SiparisTutari": 3,
+      "SiparisTutari": 618,
       "Komisyon": 106.792,
       "Kargo": 59.552,
       "IadeKargoBedeli": 0,
@@ -196779,7 +196779,7 @@
       "Komisyon": 97.18333333333334,
       "Kargo": 83.93333333333334,
       "IadeKargoBedeli": 0,
-      "CezaBedeli": -150,
+      "CezaBedeli": 150,
       "PlatformGideri": 10.19,
       "SiparisSayisi": 1
     },
@@ -196798,7 +196798,7 @@
       "Komisyon": 178.20000000000002,
       "Kargo": 83.93333333333334,
       "IadeKargoBedeli": 0,
-      "CezaBedeli": -150,
+      "CezaBedeli": 150,
       "PlatformGideri": 10.19,
       "SiparisSayisi": 1
     },
@@ -196817,7 +196817,7 @@
       "Komisyon": 177.83333333333334,
       "Kargo": 121.11666666666667,
       "IadeKargoBedeli": 0,
-      "CezaBedeli": -150,
+      "CezaBedeli": 150,
       "PlatformGideri": 10.19,
       "SiparisSayisi": 1
     },
@@ -196836,7 +196836,7 @@
       "Komisyon": 0,
       "Kargo": 83.93333333333334,
       "IadeKargoBedeli": 103.68333333333334,
-      "CezaBedeli": -150,
+      "CezaBedeli": 150,
       "PlatformGideri": 10.19,
       "SiparisSayisi": 1
     },
@@ -197197,7 +197197,7 @@
       "Komisyon": 207.83333333333334,
       "Kargo": 77.54166666666667,
       "IadeKargoBedeli": 0,
-      "CezaBedeli": -150,
+      "CezaBedeli": 150,
       "PlatformGideri": 10.19,
       "SiparisSayisi": 1
     },
@@ -197444,7 +197444,7 @@
       "Komisyon": 69.48333333333333,
       "Kargo": 77.54166666666667,
       "IadeKargoBedeli": 83.93333333333334,
-      "CezaBedeli": -100,
+      "CezaBedeli": 100,
       "PlatformGideri": 10.19,
       "SiparisSayisi": 1
     },
@@ -197995,7 +197995,7 @@
       "Komisyon": 0,
       "Kargo": 111.16666666666667,
       "IadeKargoBedeli": 107.98333333333335,
-      "CezaBedeli": -250,
+      "CezaBedeli": 250,
       "PlatformGideri": 10.19,
       "SiparisSayisi": 1
     },
@@ -198983,7 +198983,7 @@
       "Komisyon": 206.35000000000002,
       "Kargo": 77.54166666666667,
       "IadeKargoBedeli": 0,
-      "CezaBedeli": -150,
+      "CezaBedeli": 150,
       "PlatformGideri": 10.19,
       "SiparisSayisi": 1
     },
@@ -200978,7 +200978,7 @@
       "Komisyon": 0,
       "Kargo": 155.08333333333334,
       "IadeKargoBedeli": 155.08333333333334,
-      "CezaBedeli": -250,
+      "CezaBedeli": 250,
       "PlatformGideri": 20.38,
       "SiparisSayisi": 1
     },
@@ -201890,7 +201890,7 @@
       "Komisyon": 0,
       "Kargo": 101.45833333333334,
       "IadeKargoBedeli": 93.63333333333334,
-      "CezaBedeli": -150,
+      "CezaBedeli": 150,
       "PlatformGideri": 6.59,
       "SiparisSayisi": 1
     },
@@ -205842,7 +205842,7 @@
       "Komisyon": 333.6,
       "Kargo": 187.15833333333333,
       "IadeKargoBedeli": 0,
-      "CezaBedeli": -150,
+      "CezaBedeli": 150,
       "PlatformGideri": 15.44,
       "SiparisSayisi": 1
     },
@@ -208635,7 +208635,7 @@
       "Komisyon": 262.76666666666665,
       "Kargo": 87.10833333333333,
       "IadeKargoBedeli": 78.5,
-      "CezaBedeli": -200,
+      "CezaBedeli": 200,
       "PlatformGideri": 24.77,
       "SiparisSayisi": 1
     },
@@ -243877,7 +243877,7 @@
       "UrunAdedi": 6,
       "AlisFiyati": 0,
       "SiparisTutari": 1185.8,
-      "Komisyon": -1.5833333333333333,
+      "Komisyon": 0,
       "Kargo": 144.90833333333333,
       "IadeKargoBedeli": 125.65833333333333,
       "CezaBedeli": 0,
