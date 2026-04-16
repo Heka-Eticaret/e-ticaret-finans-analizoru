@@ -255,11 +255,9 @@ function App() {
         { name: 'İşletme', value: overviewMetrics.totalOperatingExpense },
         { name: 'Ceza', value: Math.abs(overviewMetrics.totalPenalty) },
         { name: 'Platform', value: Math.abs(overviewMetrics.totalPlatformExpense) },
-        { name: 'İade (Ciro Kaybı)', value: overviewMetrics.returnLoss }, 
       ].filter(item => item.value > 0);
   }, [overviewMetrics]);
 
-  // --- DATA PROCESSING FOR CHANNEL ANALYSIS ---
   const channelViewMetrics = useMemo(() => {
       const filtered = salesData.filter(row => 
           (channelFilter === 'all' || row.Platform === channelFilter) &&
@@ -276,6 +274,32 @@ function App() {
           { name: 'Platform & Ceza', value: Math.abs(channelViewMetrics.totalPlatformExpense) + Math.abs(channelViewMetrics.totalPenalty) },
       ].filter(i => i.value > 0);
   }, [channelViewMetrics]);
+  
+  const topOrdersByValue = useMemo(() => {
+      const filtered = salesData.filter(row => 
+          (channelFilter === 'all' || row.Platform === channelFilter) &&
+          (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay)) &&
+          row.SiparisStatusu !== 'İade Edildi'
+      );
+      
+      const orderTotals: Record<string, { totalValue: number, platform: string, month: string, items: string[] }> = {};
+      
+      filtered.forEach(row => {
+          const orderId = row.SiparisNo;
+          if (!orderTotals[orderId]) {
+              orderTotals[orderId] = { totalValue: 0, platform: row.Platform, month: row.Ay, items: [] };
+          }
+          orderTotals[orderId].totalValue += row.SiparisTutari;
+          if (!orderTotals[orderId].items.includes(row.UrunAciklamasi)) {
+              orderTotals[orderId].items.push(row.UrunAciklamasi);
+          }
+      });
+      
+      return Object.entries(orderTotals)
+          .map(([orderId, data]) => ({ orderId, ...data }))
+          .sort((a, b) => b.totalValue - a.totalValue)
+          .slice(0, 5);
+  }, [salesData, channelFilter, globalPeriod]);
   
   const categoryStats = useMemo(() => {
       const filtered = salesData.filter(row => 
@@ -696,6 +720,10 @@ function App() {
                                     <span className="font-bold text-slate-800">{formatNumber(overviewMetrics.totalRevenueIncVAT)} TL</span>
                                 </div>
                                 <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
+                                    <span className="text-red-500">(-) İade Ciro Kaybı</span>
+                                    <span className="font-semibold text-red-600">{formatNumber(overviewMetrics.returnLoss)} TL</span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
                                     <span className="text-slate-600">Toplam Ciro (KDV Hariç)</span>
                                     <span className="font-semibold text-slate-700">{formatNumber(overviewMetrics.totalRevenueExVAT)} TL</span>
                                 </div>
@@ -767,6 +795,8 @@ function App() {
                                                 outerRadius={80}
                                                 paddingAngle={2}
                                                 dataKey="value"
+                                                labelLine={false}
+                                                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
                                             >
                                                 {expenseBreakdownData.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -959,6 +989,80 @@ function App() {
                                             )}
                                         </React.Fragment>
                                     ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex items-center gap-2">
+                             <div className="p-1.5 bg-emerald-100 rounded text-emerald-600"><DollarSign size={16}/></div>
+                             <h3 className="font-bold text-slate-800">En Yüksek Sepet Tutarları</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left font-medium text-slate-500">Sipariş No</th>
+                                        <th className="px-6 py-3 text-left font-medium text-slate-500">Platform</th>
+                                        <th className="px-6 py-3 text-left font-medium text-slate-500">Ay</th>
+                                        <th className="px-6 py-3 text-right font-medium text-slate-500">Toplam Tutar</th>
+                                        <th className="px-6 py-3 text-left font-medium text-slate-500">Ürünler</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {topOrdersByValue.length > 0 ? (
+                                        topOrdersByValue.map((order, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-3 font-medium text-slate-700">{order.orderId}</td>
+                                                <td className="px-6 py-3 text-slate-600">{order.platform}</td>
+                                                <td className="px-6 py-3 text-slate-600">{order.month}</td>
+                                                <td className="px-6 py-3 text-right font-bold text-emerald-600">{formatCurrency(order.totalValue)}</td>
+                                                <td className="px-6 py-3 text-slate-600 max-w-[300px] truncate" title={order.items.join(', ')}>{order.items.join(', ')}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-8 text-center text-slate-400">
+                                                Uygun sipariş bulunamadı.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex items-center gap-2">
+                             <div className="p-1.5 bg-red-100 rounded text-red-600"><AlertTriangle size={16}/></div>
+                             <h3 className="font-bold text-slate-800">En Çok İade Edilen Ürünler</h3>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left font-medium text-slate-500">Ürün Adı</th>
+                                        <th className="px-6 py-3 text-right font-medium text-slate-500">İade Adeti</th>
+                                        <th className="px-6 py-3 text-right font-medium text-slate-500">İade Tutarı</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {returnStats.byQty.length > 0 ? (
+                                        returnStats.byQty.map((item, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-3 font-medium text-slate-700 max-w-[300px] truncate" title={item.name}>{item.name}</td>
+                                                <td className="px-6 py-3 text-right font-medium text-red-600">{formatNumber(item.qty)} Adet</td>
+                                                <td className="px-6 py-3 text-right font-bold text-red-600">{formatCurrency(item.lostAmount)}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} className="px-6 py-8 text-center text-slate-400">
+                                                İade verisi bulunamadı.
+                                            </td>
+                                        </tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>
