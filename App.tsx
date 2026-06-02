@@ -765,15 +765,22 @@ function App() {
                             </h3>
                             <div className="flex-1">
                                 <ul className="space-y-3 mb-6">
-                                    {expenseBreakdownData.map((item, idx) => (
+                                    {expenseBreakdownData.map((item, idx) => {
+                                      const total = expenseBreakdownData.reduce((sum, i) => sum + i.value, 0);
+                                      const percent = ((item.value / total) * 100).toFixed(1);
+                                      return (
                                         <li key={idx} className="flex justify-between text-sm items-center">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[idx % COLORS.length]}}></div>
                                                 <span className="text-slate-600">{item.name}</span>
                                             </div>
-                                            <span className="font-bold text-slate-800">{formatNumber(item.value)} TL</span>
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-slate-500 text-xs">{percent}%</span>
+                                              <span className="font-bold text-slate-800">{formatNumber(item.value)} TL</span>
+                                            </div>
                                         </li>
-                                    ))}
+                                      );
+                                    })}
                                      <li className="flex justify-between text-sm items-center pt-3 border-t border-slate-100">
                                          <div className="flex items-center gap-2">
                                             <div className="w-3 h-3 rounded-full bg-slate-400"></div>
@@ -794,13 +801,30 @@ function App() {
                                                 paddingAngle={2}
                                                 dataKey="value"
                                                 labelLine={false}
-                                                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                                                label={({ percent, value }) => {
+                                                  const pct = (percent * 100).toFixed(0);
+                                                  const amount = value >= 1000000 ? (value / 1000000).toFixed(1) + 'M' : (value / 1000).toFixed(0) + 'K';
+                                                  return `${pct}%`;
+                                                }}
                                             >
                                                 {expenseBreakdownData.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                 ))}
                                             </Pie>
-                                            <RechartsTooltip formatter={(val: number) => formatCurrency(val)} />
+                                            <RechartsTooltip 
+                                              contentStyle={{ 
+                                                backgroundColor: '#ffffff', 
+                                                border: '1px solid #e2e8f0',
+                                                borderRadius: '6px',
+                                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                              }}
+                                              formatter={(val: number) => {
+                                                const total = expenseBreakdownData.reduce((sum, i) => sum + i.value, 0);
+                                                const percent = ((val / total) * 100).toFixed(1);
+                                                return formatCurrency(val) + ` (${percent}%)`;
+                                              }}
+                                              labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
+                                            />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
