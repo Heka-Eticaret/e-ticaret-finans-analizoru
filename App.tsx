@@ -848,39 +848,39 @@ function App() {
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                        <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm max-w-full">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
                                 <div>
-                                    <div className="inline-flex items-center gap-3 rounded-2xl bg-blue-50 px-3 py-2 text-blue-600">
-                                        <BarChart2 size={18} />
+                                    <div className="inline-flex items-center gap-2 rounded-2xl bg-blue-50 px-3 py-2 text-blue-600">
+                                        <BarChart2 size={16} />
                                         <span className="text-sm font-semibold">Kanal Bazlı Ciro</span>
                                     </div>
-                                    <p className="mt-3 text-sm text-slate-500">Satış kanallarına göre dağılım ve ciro paylarını gösterir.</p>
+                                    <p className="mt-2 text-xs text-slate-500 max-w-md">Satış kanallarına göre ciro dağılımını ve paylarını hızlıca gösterir.</p>
                                 </div>
-                                <div className="rounded-3xl bg-slate-50 px-4 py-3 border border-slate-100 shadow-sm">
-                                    <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Toplam Ciro</div>
-                                    <div className="mt-2 text-xl font-semibold text-slate-900">{formatCurrency(channelRevenueData.reduce((sum, item) => sum + item.value, 0))} TL</div>
+                                <div className="rounded-3xl bg-slate-50 px-3 py-2 border border-slate-100 text-right">
+                                    <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Toplam Ciro</div>
+                                    <div className="mt-1 text-lg font-semibold text-slate-900">{formatCurrency(channelRevenueData.reduce((sum, item) => sum + item.value, 0))} TL</div>
                                 </div>
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {channelRevenueData.map((item, idx) => {
                                     const total = channelRevenueData.reduce((sum, i) => sum + i.value, 0);
                                     const percent = ((item.value / total) * 100).toFixed(1);
                                     return (
-                                        <div key={item.name} className="rounded-3xl border border-slate-100 bg-slate-50 p-4 shadow-sm">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
-                                                    <span className="text-sm font-semibold text-slate-800">{item.name}</span>
+                                        <div key={item.name} className="rounded-3xl bg-slate-50 p-3 border border-slate-100">
+                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                                                    <span className="truncate text-sm font-semibold text-slate-800">{item.name}</span>
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-sm font-semibold text-slate-900">{formatCurrency(item.value)} TL</div>
-                                                    <div className="text-xs text-slate-500">{percent}%</div>
+                                                    <div className="text-[11px] text-slate-500">{percent}%</div>
                                                 </div>
                                             </div>
                                             <div className="mt-3 h-2.5 w-full rounded-full bg-white border border-slate-200 overflow-hidden">
-                                                <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: COLORS[idx % COLORS.length] }} />
+                                                <div className="h-full rounded-full transition-all duration-300" style={{ width: `${percent}%`, backgroundColor: COLORS[idx % COLORS.length] }} />
                                             </div>
                                         </div>
                                     );
