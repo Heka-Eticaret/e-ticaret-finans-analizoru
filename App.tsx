@@ -853,28 +853,69 @@ function App() {
                                 <div className="p-1.5 bg-blue-100 rounded text-blue-600"><BarChart2 size={16}/></div>
                                 Kanal Bazlı Ciro
                             </h3>
-                            <div className="flex-1">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        layout="vertical"
-                                        data={channelRevenueData}
-                                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                                        <XAxis type="number" hide />
-                                        <YAxis type="category" dataKey="name" width={80} tick={{fontSize: 11, fill: '#64748b'}} />
-                                        <RechartsTooltip 
-                                            cursor={{fill: '#f1f5f9'}}
-                                            contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
-                                            formatter={(val: number) => formatCurrency(val)}
-                                        />
-                                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                                            {channelRevenueData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            <div className="flex-1 flex gap-8">
+                                {/* Sol Taraf - Bar Chart */}
+                                <div className="w-1/3 min-h-[300px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart
+                                            layout="vertical"
+                                            data={channelRevenueData}
+                                            margin={{ top: 5, right: 20, left: 80, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                                            <XAxis type="number" hide />
+                                            <YAxis type="category" dataKey="name" width={75} tick={{fontSize: 10, fill: '#64748b'}} />
+                                            <RechartsTooltip 
+                                                cursor={{fill: '#f1f5f9'}}
+                                                contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
+                                                formatter={(val: number) => formatCurrency(val)}
+                                            />
+                                            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                                                {channelRevenueData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+
+                                {/* Sağ Taraf - Detaylı Liste */}
+                                <div className="w-2/3 space-y-3">
+                                    {channelRevenueData.map((item, idx) => {
+                                      const total = channelRevenueData.reduce((sum, i) => sum + i.value, 0);
+                                      const percent = ((item.value / total) * 100).toFixed(1);
+                                      const barWidth = (item.value / total) * 100;
+                                      return (
+                                        <div key={idx} className="space-y-1.5 p-3 bg-slate-50 rounded-lg">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[idx % COLORS.length]}}></div>
+                                                    <span className="text-sm font-semibold text-slate-700">{item.name}</span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-bold text-slate-800">{formatNumber(item.value)} TL</div>
+                                                    <div className="text-xs text-slate-500">{percent}%</div>
+                                                </div>
+                                            </div>
+                                            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                                <div 
+                                                  className="h-full rounded-full transition-all duration-500"
+                                                  style={{
+                                                    width: `${barWidth}%`,
+                                                    backgroundColor: COLORS[idx % COLORS.length]
+                                                  }}
+                                                />
+                                            </div>
+                                        </div>
+                                      );
+                                    })}
+                                    <div className="pt-3 border-t border-slate-200 mt-4">
+                                        <div className="flex items-center justify-between font-bold">
+                                            <span className="text-slate-700">Toplam Ciro</span>
+                                            <span className="text-lg text-slate-800">{formatNumber(channelRevenueData.reduce((sum, i) => sum + i.value, 0))} TL</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
