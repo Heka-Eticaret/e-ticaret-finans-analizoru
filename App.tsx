@@ -800,11 +800,25 @@ function App() {
                                                 outerRadius={80}
                                                 paddingAngle={2}
                                                 dataKey="value"
-                                                labelLine={false}
-                                                label={({ percent, value }) => {
+                                                labelLine={true}
+                                                label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+                                                  const RADIAN = Math.PI / 180;
+                                                  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                                  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                                                  const y = cy + radius * Math.sin(-midAngle * RADIAN);
                                                   const pct = (percent * 100).toFixed(0);
-                                                  const amount = value >= 1000000 ? (value / 1000000).toFixed(1) + 'M' : (value / 1000).toFixed(0) + 'K';
-                                                  return `${pct}%`;
+                                                  return (
+                                                    <text 
+                                                      x={x} 
+                                                      y={y} 
+                                                      fill="white" 
+                                                      textAnchor={x > cx ? 'start' : 'end'} 
+                                                      dominantBaseline="central"
+                                                      className="font-bold text-sm"
+                                                    >
+                                                      {pct}%
+                                                    </text>
+                                                  );
                                                 }}
                                             >
                                                 {expenseBreakdownData.map((entry, index) => (
