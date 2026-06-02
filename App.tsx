@@ -62,17 +62,15 @@ const calculateMetrics = (data: SalesDataRow[], expenses: FixedExpenses, monthFi
     const selectedMonths = typeof monthFilter === 'string' ? [monthFilter] : monthFilter;
     if (selectedMonths.length > 0 && selectedMonths[0] !== 'all') {
         selectedMonths.forEach(month => {
-            if (expenses[month] && platformFilter === 'all') {
+            if (expenses[month]) {
                 marketingExp += expenses[month].marketing;
                 operatingExp += expenses[month].operations;
             }
         });
     } else {
         Object.values(expenses).forEach(exp => {
-             if (platformFilter === 'all') {
-                marketingExp += exp.marketing;
-                operatingExp += exp.operations;
-             }
+            marketingExp += exp.marketing;
+            operatingExp += exp.operations;
         });
     }
 
