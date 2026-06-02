@@ -848,34 +848,71 @@ function App() {
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col">
-                             <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <div className="p-1.5 bg-blue-100 rounded text-blue-600"><BarChart2 size={16}/></div>
-                                Kanal Bazlı Ciro
-                            </h3>
-                            <div className="flex-1">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        layout="vertical"
-                                        data={channelRevenueData}
-                                        margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                                        <XAxis type="number" hide />
-                                        <YAxis type="category" dataKey="name" width={80} tick={{fontSize: 11, fill: '#64748b'}} />
-                                        <RechartsTooltip 
-                                            cursor={{fill: '#f1f5f9'}}
-                                            contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'}}
-                                            labelFormatter={() => ''}
-                                            formatter={(val: number) => [formatCurrency(val), 'Ciro']}
-                                        />
-                                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                                            {channelRevenueData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
+                        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 rounded-xl text-blue-600"><BarChart2 size={18}/></div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-slate-900">Kanal Bazlı Ciro</h3>
+                                        <p className="text-sm text-slate-500 mt-1">Pazaryeri gelirleri ve payları daha net bir şekilde gösteriliyor.</p>
+                                    </div>
+                                </div>
+                                <div className="rounded-2xl bg-slate-50 px-4 py-3 border border-slate-100 shadow-sm">
+                                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">Toplam Ciro</div>
+                                    <div className="text-lg font-semibold text-slate-900 mt-1">{formatNumber(channelRevenueData.reduce((sum, item) => sum + item.value, 0))} TL</div>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                                <div className="h-[320px] min-h-[320px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart
+                                            layout="vertical"
+                                            data={channelRevenueData}
+                                            margin={{ top: 10, right: 20, left: 10, bottom: 10 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="#e2e8f0" />
+                                            <XAxis type="number" hide />
+                                            <YAxis type="category" dataKey="name" width={110} tick={{fontSize: 12, fill: '#475569'}} axisLine={false} tickLine={false} />
+                                            <RechartsTooltip 
+                                                cursor={{fill: '#f8fafc'}}
+                                                contentStyle={{borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)'}}
+                                                labelFormatter={() => ''}
+                                                formatter={(val: number) => [formatCurrency(val), 'Ciro']}
+                                            />
+                                            <Bar dataKey="value" radius={[0, 10, 10, 0]} barSize={18}>
+                                                {channelRevenueData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="space-y-3">
+                                    {channelRevenueData.map((item, idx) => {
+                                        const total = channelRevenueData.reduce((sum, i) => sum + i.value, 0);
+                                        const percent = ((item.value / total) * 100).toFixed(1);
+                                        return (
+                                            <div key={idx} className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
+                                                <div className="flex items-center justify-between gap-4 mb-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[idx % COLORS.length]}}></span>
+                                                        <div>
+                                                            <div className="text-sm font-semibold text-slate-800">{item.name}</div>
+                                                            <div className="text-xs text-slate-500">{percent}% pay</div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="text-sm font-bold text-slate-900">{formatNumber(item.value)} TL</div>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full bg-white rounded-full h-2.5 overflow-hidden border border-slate-100">
+                                                    <div className="h-full rounded-full" style={{width: `${percent}%`, backgroundColor: COLORS[idx % COLORS.length]}} />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
