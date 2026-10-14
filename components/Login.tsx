@@ -12,11 +12,20 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Basit kimlik doğrulama kontrolü
-    if ((username === 'alaa' && password === '1234') ||
-       (username === 'can' && password === '1234') ||
-       (username === 'fatih' && password === '1234')) {
+    const validUsers = [
+      { username: 'alaa', password: '1234' },
+      { username: 'can', password: '1234' },
+      { username: 'fatih', password: '1234' },
+      { username: 'kubra', password: '1234' },
+    ];
+
+    const isValidUser = validUsers.some(
+      (user) => user.username === username && user.password === password
+    );
+
+    if (isValidUser) {
       onLogin();
     } else {
       setError('Kullanıcı adı veya şifre hatalı!');
