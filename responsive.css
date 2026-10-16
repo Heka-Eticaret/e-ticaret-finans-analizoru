@@ -1,0 +1,33 @@
+.report-app, .report-app * { box-sizing: border-box; }
+.report-app main, .report-app main .grid > * { min-width: 0; }
+.report-app .table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.report-app .table-scroll:focus-visible { outline: 2px solid #818cf8; outline-offset: -2px; }
+.mobile-navigation summary::-webkit-details-marker { display: none; }
+@media (max-width: 767px) {
+  .report-app { display: block; width: 100%; }
+  .report-app header { position: relative; }
+  .report-app main { padding: 16px 12px; }
+  .report-app main > .space-y-6 > * + * { margin-top: 16px; }
+  .report-app main .grid { gap: 16px; }
+  .report-app main .p-6 { padding: 16px; }
+  .report-app main .p-5 { padding: 16px; }
+  .report-app main .text-2xl { font-size: 1.25rem; overflow-wrap: anywhere; }
+  .report-app main .text-lg { overflow-wrap: anywhere; }
+  .report-app button, .report-app select, .mobile-navigation summary { min-height: 44px; }
+  .report-app details > summary { min-height: 40px; align-items: center; }
+  .report-app input, .report-app select { font-size: 16px; max-width: 100%; }
+  .report-app .table-scroll table { min-width: 640px; }
+  .report-app .table-scroll th, .report-app .table-scroll td { padding: 12px; }
+  .report-app .table-scroll details[open] { min-width: 170px; }
+  .report-app .expense-heading { flex-direction: column; align-items: stretch; }
+  .report-app .expense-heading > :last-child { align-self: stretch; text-align: left; }
+  .report-app .monthly-selectors { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .report-app .monthly-selectors select { width: 100%; }
+  .report-app .monthly-selectors > span { text-align: center; }
+  .report-app .chart-container { height: 300px; }
+  .report-app .period-panel { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; max-width: none; max-height: calc(100dvh - 88px); overflow-y: auto; z-index: 60; }
+  .report-app .period-panel nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-app .period-panel nav button { padding: 8px 10px; }
+  .report-app .period-panel > div { padding: 12px 4px; }
+  .report-app .period-panel button { touch-action: manipulation; }
+}

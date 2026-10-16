@@ -30,7 +30,8 @@ export function PeriodPicker({ months, value, onChange, onSelectPeriod }: { mont
     <button ref={trigger} type="button" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(!open)} className="flex items-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:border-orange-400 focus-visible:outline-orange-500">
       <CalendarDays size={16} className="text-slate-400" />{label}<ChevronDown size={16} />
     </button>
-    {open && <div role="dialog" aria-label="Dönem seçimi" className="absolute right-0 top-full z-50 mt-3 flex w-[720px] max-w-[calc(100vw-32px)] flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-xl sm:flex-row">
+    {open && <div role="dialog" aria-label="Dönem seçimi" className="period-panel absolute right-0 top-full z-50 mt-3 flex w-[720px] max-w-[calc(100vw-32px)] flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-xl sm:flex-row">
+      <button type="button" aria-label="Dönem seçimini kapat" onClick={() => { setOpen(false); trigger.current?.focus(); }} className="mb-2 self-end rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 sm:hidden">Kapat ×</button>
       <nav aria-label="Dönem türü" className="flex shrink-0 gap-1 border-b border-slate-200 pb-3 sm:w-40 sm:flex-col sm:border-b-0 sm:border-r sm:pb-0 sm:pr-3">
         <button type="button" onClick={() => choose(['all'])} className={`rounded px-4 py-3 text-left text-sm font-semibold text-slate-700 ${value[0] === 'all' ? 'bg-slate-100' : 'hover:bg-slate-50'}`}>Tüm Zamanlar</button>
         <div className="my-2 hidden border-t border-slate-300 sm:block" />

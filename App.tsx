@@ -1,3 +1,4 @@
+import './responsive.css';
 import { PeriodChange, ComparisonValue } from './components/PeriodChange';
 import { PeriodSelection, comparisonPeriod, monthIndex, periodLabel } from './utils/periodComparison';
 import React, { useState, useMemo, useEffect } from 'react';
@@ -135,7 +136,7 @@ const ExpenseBreakdownCard: React.FC<{
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 flex flex-col gap-5 overflow-hidden">
-      <div className="flex items-start justify-between gap-4">
+      <div className="expense-heading flex items-start justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-3 py-2 text-rose-600">
             <TrendingDown size={16} />
@@ -624,8 +625,8 @@ function App() {
 
   if (!isAuthenticated) return <Login onLogin={() => setIsAuthenticated(true)} />;
 
-  const renderSidebar = () => (
-    <aside className="w-64 bg-white border-r border-slate-200 fixed h-full z-10 hidden md:flex flex-col overflow-y-auto">
+  const renderSidebar = (mobile = false) => (
+    <aside className={mobile ? "w-full bg-white flex flex-col" : "w-64 bg-white border-r border-slate-200 fixed h-full z-10 hidden md:flex flex-col overflow-y-auto"}>
       <div className="p-6 border-b border-slate-100">
         <h1 className="text-2xl font-bold text-indigo-600">Heka E-Ticaret</h1>
       </div>
@@ -635,7 +636,7 @@ function App() {
           { id: 'channels', label: 'Kanal Analizi', icon: ShoppingBag },
           { id: 'monthly', label: 'Karşılaştırma', icon: BarChart2 },
         ].map((item) => (
-          <button key={item.id} onClick={() => setActiveTab(item.id as any)}
+          <button key={item.id} onClick={(event) => { setActiveTab(item.id as any); event.currentTarget.closest('details')?.removeAttribute('open'); }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
               activeTab === item.id ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}>
@@ -666,10 +667,11 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-inter flex text-slate-800">
+    <div className="report-app min-h-screen bg-[#f8fafc] font-inter flex text-slate-800">
       {renderSidebar()}
-      <div className="flex-1 md:ml-64">
-        <header className="bg-white border-b border-slate-200 sticky top-0 z-20 px-8 py-5 flex items-center justify-between shadow-sm">
+      <details className="mobile-navigation border-b border-slate-200 bg-white md:hidden"><summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-slate-700"><span>☰ Menü</span><span className="text-slate-400">E-Ticaret Raporu</span></summary>{renderSidebar(true)}</details>
+      <div className="min-w-0 flex-1 md:ml-64">
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-20 px-4 sm:px-8 py-4 sm:py-5 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 shadow-sm">
           <div>
             <h2 className="text-xl font-bold text-slate-900">
               {activeTab === 'overview' && 'Genel Bakış'}
@@ -683,7 +685,7 @@ function App() {
             </p>
           </div>
           {(activeTab === 'overview' || activeTab === 'channels') && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {activeTab === 'overview' && (
                 <>
                   <span className="text-sm font-medium text-slate-600">Kanal:</span>
@@ -695,7 +697,7 @@ function App() {
                     </select>
                     <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
-                  <div className="w-px h-6 bg-slate-200 mx-1" />
+                  <div className="basis-full h-0 sm:basis-auto sm:w-px sm:h-6 sm:bg-slate-200 sm:mx-1" />
                 </>
               )}
               <span className="text-sm font-medium text-slate-600">Dönem:</span>
@@ -760,7 +762,7 @@ function App() {
                   subLabel="Komisyon, Kargo, Reklam, İşletme vb." />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Gelir Tablosu */}
                 <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
                   <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -939,7 +941,7 @@ function App() {
                   <div className="p-1.5 bg-indigo-100 rounded text-indigo-600"><Tags size={16}/></div>
                   <h3 className="font-bold text-slate-800">Kategori Bazlı Performans</h3>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="table-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Veri tablosu, tüm sütunlar için yatay kaydırın">
                   <table className="min-w-full text-sm">
                     <thead className="bg-slate-50">
                       <tr>
@@ -997,7 +999,7 @@ function App() {
                   <div className="p-1.5 bg-emerald-100 rounded text-emerald-600"><DollarSign size={16}/></div>
                   <div><h3 className="font-bold text-slate-800">En Yüksek Sepet Tutarları</h3><p className="mt-1 text-xs text-slate-400">Seçilen dönemin siparişleri; tekil siparişler dönemler arasında karşılaştırılmaz.</p></div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="table-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Veri tablosu, tüm sütunlar için yatay kaydırın">
                   <table className="min-w-full text-sm">
                     <thead className="bg-slate-50">
                       <tr>
@@ -1027,7 +1029,7 @@ function App() {
                   <div className="p-1.5 bg-red-100 rounded text-red-600"><AlertTriangle size={16}/></div>
                   <h3 className="font-bold text-slate-800">En Çok İade Edilen Ürünler</h3>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="table-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Veri tablosu, tüm sütunlar için yatay kaydırın">
                   <table className="min-w-full text-sm">
                     <thead className="bg-slate-50">
                       <tr>
@@ -1065,7 +1067,7 @@ function App() {
                   </div>
                 </div>
                 {channelSearchTerm ? (
-                  <div className="overflow-x-auto">
+                  <div className="table-scroll overflow-x-auto" tabIndex={0} role="region" aria-label="Veri tablosu, tüm sütunlar için yatay kaydırın">
                     <table className="min-w-full text-sm">
                       <thead className="bg-slate-50">
                         <tr>
@@ -1105,7 +1107,7 @@ function App() {
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                   <h3 className="text-lg font-bold text-slate-900">Aylık Karşılaştırma</h3>
-                  <div className="flex items-center gap-3">
+                  <div className="monthly-selectors flex items-center gap-3">
                     <select value={compareMonth1} onChange={(e) => setCompareMonth1(e.target.value)}
                       className="bg-white border border-slate-300 text-slate-700 py-2 px-4 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-200">
                       {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
@@ -1131,7 +1133,7 @@ function App() {
                     <p className={`text-xl font-bold ${comparisonData.diffOrders >= 0 ? 'text-emerald-600' : 'text-slate-700'}`}>{formatNumber(comparisonData.diffOrders)} Sipariş</p>
                   </div>
                 </div>
-                <div className="h-[400px]">
+                <div className="chart-container h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={comparisonData.chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
