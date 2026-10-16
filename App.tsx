@@ -1,3 +1,5 @@
+import { PeriodChange, ComparisonValue } from './components/PeriodChange';
+import { PeriodSelection, comparisonPeriod, monthIndex, periodLabel } from './utils/periodComparison';
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
@@ -10,6 +12,7 @@ import {
 } from 'lucide-react';
 import { parseExcelFile, formatCurrency, formatNumber } from './utils/excelHelpers';
 import { SalesDataRow, FixedExpenses, DashboardMetrics } from './types';
+import { PeriodPicker } from './components/PeriodPicker';
 import { KpiCard } from './components/KpiCard';
 import { Login } from './components/Login';
 import { INITIAL_SALES_DATA, INITIAL_EXPENSES } from './initialData';
@@ -111,14 +114,16 @@ const DonutChart: React.FC<{ data: DonutItem[]; totalFormatted: string }> = ({ d
 };
 
 // ─── Expense Breakdown Card ───────────────────────────────────────────────────
-interface ExpenseItem { name: string; value: number; }
+interface ExpenseItem { name: string; value: number; comparison?: ComparisonValue; }
 
 const ExpenseBreakdownCard: React.FC<{
   expenseData: ExpenseItem[];
   cogsValue: number;
+  totalComparison?: ComparisonValue;
+  cogsComparison?: ComparisonValue;
   formatNumber: (n: number) => string;
   formatCurrency: (n: number) => string;
-}> = ({ expenseData, cogsValue, formatNumber, formatCurrency }) => {
+}> = ({ expenseData, cogsValue, formatNumber, formatCurrency, totalComparison, cogsComparison }) => {
   const total = expenseData.reduce((s, i) => s + i.value, 0);
   const donutData: DonutItem[] = expenseData.map((item, idx) => ({
     name: item.name,
@@ -149,6 +154,7 @@ const ExpenseBreakdownCard: React.FC<{
           <div className="mt-1 text-lg font-bold text-slate-900">
             {formatCurrency(total)}
           </div>
+          <PeriodChange comparison={totalComparison} />
         </div>
       </div>
 
@@ -183,6 +189,7 @@ const ExpenseBreakdownCard: React.FC<{
                 </div>
               </div>
 
+              <PeriodChange comparison={item.comparison} />
               <div className="mt-3 h-2 rounded-full bg-slate-100 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
@@ -211,6 +218,7 @@ const ExpenseBreakdownCard: React.FC<{
           <div className="text-sm font-bold text-slate-700">
             {formatNumber(cogsValue)} TL
           </div>
+          <PeriodChange comparison={cogsComparison} />
         </div>
       </div>
 
@@ -276,6 +284,7 @@ function App() {
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpenses>({});
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'channels' | 'monthly'>('overview');
+  const [periodSelection, setPeriodSelection] = useState<PeriodSelection | null>(null);
   const [globalPeriod, setGlobalPeriod] = useState<string[]>(['all']);
   const [globalChannelFilter, setGlobalChannelFilter] = useState<string>('all');
   const [channelFilter, setChannelFilter] = useState<string>('all');
@@ -341,6 +350,28 @@ function App() {
     calculateMetrics(overviewData, fixedExpenses, globalPeriod, globalChannelFilter),
   [overviewData, fixedExpenses, globalPeriod, globalChannelFilter]);
 
+  const periodComparison = useMemo(() => {
+    const period = comparisonPeriod(globalPeriod, periodSelection);
+    if (!period) return null;
+    const start = period.start - period.length;
+    const inRange = (key: string, from: number) => monthIndex(key) >= from && monthIndex(key) < from + period.length;
+    const previousRows = salesData.filter(row => inRange(row.Ay, start) && (globalChannelFilter === 'all' || row.Platform === globalChannelFilter));
+    const previousKeys = [...new Set([...uniqueMonths, ...Object.keys(fixedExpenses)].filter(key => inRange(key, start)))];
+    const countMonths = (from: number) => new Set(uniqueMonths.filter(key => inRange(key, from)).map(monthIndex)).size;
+    const previousCount = countMonths(start), currentCount = countMonths(period.start);
+    return {
+      label: periodLabel(start, period.length), currentLabel: period.label,
+      metrics: previousCount ? calculateMetrics(previousRows, fixedExpenses, previousKeys, globalChannelFilter) : null,
+      partial: currentCount < period.length || (previousCount > 0 && previousCount < period.length),
+      currentCount, previousCount, length: period.length, previousRows,
+    };
+  }, [globalPeriod, periodSelection, salesData, uniqueMonths, fixedExpenses, globalChannelFilter]);
+  const totalExpenses = (metrics: DashboardMetrics) => Math.abs(metrics.totalCommission) + Math.abs(metrics.totalShipping) + Math.abs(metrics.totalPenalty) + Math.abs(metrics.totalPlatformExpense) + metrics.totalMarketingExpense + metrics.totalOperatingExpense;
+  const comparisonFor = (key: keyof DashboardMetrics | 'expenses', lowerIsBetter = false) => periodComparison ? {
+    current: key === 'expenses' ? totalExpenses(overviewMetrics) : overviewMetrics[key],
+    previous: periodComparison.metrics ? (key === 'expenses' ? totalExpenses(periodComparison.metrics) : periodComparison.metrics[key]) : null,
+    label: periodComparison.label, lowerIsBetter,
+  } : undefined;
   const grossMarginRate = useMemo(() =>
     overviewMetrics.totalRevenueExVAT <= 0 ? 0 : (overviewMetrics.totalGrossProfit / overviewMetrics.totalRevenueExVAT) * 100,
   [overviewMetrics]);
@@ -354,17 +385,27 @@ function App() {
     overviewData.forEach(row => {
       if (row.SiparisStatusu !== 'İade Edildi') stats[row.Platform] = (stats[row.Platform] || 0) + row.SiparisTutari;
     });
+    periodComparison?.previousRows.forEach(row => {
+      if (row.SiparisStatusu !== 'İade Edildi' && !(row.Platform in stats)) stats[row.Platform] = 0;
+    });
     return Object.entries(stats).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [overviewData]);
+  }, [overviewData, periodComparison]);
 
-  const expenseBreakdownData = useMemo(() => [
-    { name: 'Komisyon', value: Math.abs(overviewMetrics.totalCommission) },
-    { name: 'Kargo', value: Math.abs(overviewMetrics.totalShipping) },
-    { name: 'Reklam', value: overviewMetrics.totalMarketingExpense },
-    { name: 'İşletme', value: overviewMetrics.totalOperatingExpense },
-    { name: 'Ceza', value: Math.abs(overviewMetrics.totalPenalty) },
-    { name: 'Platform', value: Math.abs(overviewMetrics.totalPlatformExpense) },
-  ].filter(item => item.value > 0), [overviewMetrics]);
+  const expenseBreakdownData: ExpenseItem[] = ([
+    ['Komisyon', 'totalCommission', true], ['Kargo', 'totalShipping', true],
+    ['Reklam', 'totalMarketingExpense', false], ['İşletme', 'totalOperatingExpense', false],
+    ['Ceza', 'totalPenalty', true], ['Platform', 'totalPlatformExpense', true],
+  ] as const).map(([name, key, absolute]) => {
+    const value = absolute ? Math.abs(overviewMetrics[key]) : overviewMetrics[key];
+    const previous = periodComparison?.metrics ? (absolute ? Math.abs(periodComparison.metrics[key]) : periodComparison.metrics[key]) : null;
+    return { name, value, comparison: periodComparison ? { current: value, previous, label: periodComparison.label, lowerIsBetter: true } : undefined };
+  }).filter(item => item.value !== 0 || (item.comparison?.previous ?? 0) !== 0);
+  const operationalExpenses = (m: DashboardMetrics) => Math.abs(m.totalCommission) + Math.abs(m.totalShipping) + Math.abs(m.totalPenalty) + Math.abs(m.totalPlatformExpense);
+  const operationalComparison = periodComparison ? { current: operationalExpenses(overviewMetrics), previous: periodComparison.metrics ? operationalExpenses(periodComparison.metrics) : null, label: periodComparison.label, lowerIsBetter: true } : undefined;
+  const channelComparison = (name: string, current: number): ComparisonValue | undefined => periodComparison ? {
+    current, previous: periodComparison.metrics ? periodComparison.previousRows.filter(row => row.Platform === name && row.SiparisStatusu !== 'İade Edildi').reduce((sum, row) => sum + row.SiparisTutari, 0) : null,
+    label: periodComparison.label,
+  } : undefined;
 
   const channelViewMetrics = useMemo(() => {
     const filtered = salesData.filter(row =>
@@ -373,6 +414,46 @@ function App() {
     );
     return calculateMetrics(filtered, fixedExpenses, globalPeriod, channelFilter);
   }, [salesData, fixedExpenses, channelFilter, globalPeriod]);
+
+
+  const channelPeriodComparison = useMemo(() => {
+    const period = comparisonPeriod(globalPeriod, periodSelection);
+    if (!period) return null;
+    const start = period.start - period.length;
+    const inRange = (key: string, from: number) => monthIndex(key) >= from && monthIndex(key) < from + period.length;
+    const rows = salesData.filter(row => inRange(row.Ay, start) && (channelFilter === 'all' || row.Platform === channelFilter));
+    const keys = [...new Set([...uniqueMonths, ...Object.keys(fixedExpenses)].filter(key => inRange(key, start)))];
+    const count = (from: number) => new Set(uniqueMonths.filter(key => inRange(key, from)).map(monthIndex)).size;
+    const previousCount = count(start), currentCount = count(period.start);
+    return { rows, metrics: previousCount ? calculateMetrics(rows, fixedExpenses, keys, channelFilter) : null,
+      label: periodLabel(start, period.length), currentLabel: period.label, previousCount, currentCount, length: period.length,
+      partial: currentCount < period.length || (previousCount > 0 && previousCount < period.length) };
+  }, [salesData, fixedExpenses, uniqueMonths, globalPeriod, periodSelection, channelFilter]);
+  const channelValueComparison = (current: number, previous: number, lowerIsBetter = false, unit: ComparisonValue['unit'] = 'currency'): ComparisonValue | undefined => channelPeriodComparison ? {
+    current, previous: channelPeriodComparison.metrics ? previous : null, label: channelPeriodComparison.label, lowerIsBetter, unit,
+  } : undefined;
+  const channelMetricComparison = (select: (m: DashboardMetrics) => number, lowerIsBetter = false, unit: ComparisonValue['unit'] = 'currency') => channelValueComparison(select(channelViewMetrics), channelPeriodComparison?.metrics ? select(channelPeriodComparison.metrics) : 0, lowerIsBetter, unit);
+  const previousChannelDetails = useMemo(() => {
+    const categories: Record<string, { revenue: number; qty: number }> = {};
+    const products: Record<string, { deliveredQty: number; deliveredRevenue: number; returnedQty: number; returnedRevenue: number }> = {};
+    const categoryProducts: Record<string, { qty: number; revenue: number }> = {};
+    (channelPeriodComparison?.rows ?? []).forEach(row => {
+      const name = row.UrunAciklamasi;
+      const product = products[name] ??= { deliveredQty: 0, deliveredRevenue: 0, returnedQty: 0, returnedRevenue: 0 };
+      if (row.SiparisStatusu === 'İade Edildi') {
+        product.returnedQty += row.UrunAdedi || 0; product.returnedRevenue += row.SiparisTutari || 0;
+      } else {
+        product.deliveredQty += row.UrunAdedi || 0; product.deliveredRevenue += row.SiparisTutari || 0;
+        const group = row.UrunGrubu || 'Diğer';
+        const category = categories[group] ??= { revenue: 0, qty: 0 };
+        category.revenue += row.SiparisTutari; category.qty += row.UrunAdedi;
+        const item = categoryProducts[JSON.stringify([group, name])] ??= { revenue: 0, qty: 0 };
+        item.revenue += row.SiparisTutari; item.qty += row.UrunAdedi;
+      }
+    });
+    return { categories, products, categoryProducts };
+  }, [channelPeriodComparison]);
+  const returnRate = (m: DashboardMetrics) => m.deliveredOrderCount + m.returnedOrderCount > 0 ? m.returnedOrderCount / (m.deliveredOrderCount + m.returnedOrderCount) * 100 : 0;
 
   const topOrdersByValue = useMemo(() => {
     const filtered = salesData.filter(row =>
@@ -397,6 +478,12 @@ function App() {
       (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
     );
     const stats: Record<string, { revenue: number, qty: number, products: Record<string, {qty: number, revenue: number}> }> = {};
+    (channelPeriodComparison?.rows ?? []).forEach(row => {
+      if (row.SiparisStatusu === 'İade Edildi') return;
+      const group = row.UrunGrubu || 'Diğer';
+      stats[group] ??= { revenue: 0, qty: 0, products: {} };
+      stats[group].products[row.UrunAciklamasi] ??= { qty: 0, revenue: 0 };
+    });
     filtered.forEach(row => {
       if (row.SiparisStatusu !== 'İade Edildi') {
         const group = row.UrunGrubu || 'Diğer';
@@ -415,7 +502,7 @@ function App() {
         .map(([pName, pData]) => ({ name: pName, qty: pData.qty, revenue: pData.revenue }))
         .sort((a, b) => b.qty - a.qty).slice(0, 5)
     })).sort((a, b) => b.revenue - a.revenue);
-  }, [salesData, channelFilter, globalPeriod]);
+  }, [salesData, channelFilter, globalPeriod, channelPeriodComparison]);
 
   const toggleCategory = (catName: string) => {
     const s = new Set(expandedCategories);
@@ -435,6 +522,12 @@ function App() {
       (row.UrunKodu && String(row.UrunKodu).toLocaleLowerCase('tr-TR').includes(lt))
     );
     const stats: Record<string, { name: string, sku: string, deliveredQty: number, deliveredRevenue: number, returnedQty: number, returnedRevenue: number }> = {};
+    (channelPeriodComparison?.rows ?? []).filter(row =>
+      (row.UrunAciklamasi && row.UrunAciklamasi.toLocaleLowerCase('tr-TR').includes(lt)) ||
+      (row.UrunKodu && String(row.UrunKodu).toLocaleLowerCase('tr-TR').includes(lt))
+    ).forEach(row => {
+      stats[row.UrunAciklamasi] ??= { name: row.UrunAciklamasi, sku: row.UrunKodu, deliveredQty: 0, deliveredRevenue: 0, returnedQty: 0, returnedRevenue: 0 };
+    });
     matches.forEach(row => {
       const key = row.UrunAciklamasi;
       if (!stats[key]) stats[key] = { name: row.UrunAciklamasi, sku: row.UrunKodu, deliveredQty: 0, deliveredRevenue: 0, returnedQty: 0, returnedRevenue: 0 };
@@ -445,7 +538,7 @@ function App() {
       }
     });
     return Object.values(stats).sort((a, b) => b.deliveredRevenue - a.deliveredRevenue);
-  }, [salesData, channelFilter, globalPeriod, channelSearchTerm]);
+  }, [salesData, channelFilter, globalPeriod, channelSearchTerm, channelPeriodComparison]);
 
   const returnStats = useMemo(() => {
     const filtered = salesData.filter(row =>
@@ -453,16 +546,19 @@ function App() {
       (globalPeriod[0] === 'all' || globalPeriod.includes(row.Ay))
     );
     const stats: Record<string, { qty: number, lostAmount: number }> = {};
+    (channelPeriodComparison?.rows ?? []).forEach(row => {
+      if (row.SiparisStatusu === 'İade Edildi') stats[row.UrunAciklamasi] ??= { qty: 0, lostAmount: 0 };
+    });
     filtered.forEach(row => {
       if (row.SiparisStatusu === 'İade Edildi') {
         const pn = row.UrunAciklamasi;
         if (!stats[pn]) stats[pn] = { qty: 0, lostAmount: 0 };
-        stats[pn].qty += (row.UrunAdedi || 1); stats[pn].lostAmount += row.SiparisTutari;
+        stats[pn].qty += (row.UrunAdedi || 0); stats[pn].lostAmount += row.SiparisTutari;
       }
     });
     const arr = Object.entries(stats).map(([name, val]) => ({ name, ...val }));
     return { byQty: [...arr].sort((a, b) => b.qty - a.qty).slice(0, 5), byAmount: [...arr].sort((a, b) => b.lostAmount - a.lostAmount).slice(0, 5) };
-  }, [salesData, channelFilter, globalPeriod]);
+  }, [salesData, channelFilter, globalPeriod, channelPeriodComparison]);
 
   const comparisonData = useMemo(() => {
     if (!compareMonth1 || !compareMonth2) return null;
@@ -603,6 +699,7 @@ function App() {
                 </>
               )}
               <span className="text-sm font-medium text-slate-600">Dönem:</span>
+              {(activeTab === 'overview' || activeTab === 'channels') ? <PeriodPicker months={uniqueMonths} value={globalPeriod} onChange={setGlobalPeriod} onSelectPeriod={setPeriodSelection} /> : (
               <div className="relative">
                 <button onClick={() => setIsPeriodDropdownOpen(!isPeriodDropdownOpen)}
                   className="bg-white border border-slate-300 hover:border-indigo-500 text-slate-700 py-2 px-4 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-200 flex items-center gap-2 w-[160px] whitespace-nowrap">
@@ -634,6 +731,7 @@ function App() {
                   </div>
                 )}
               </div>
+              )}
             </div>
           )}
         </header>
@@ -641,18 +739,22 @@ function App() {
         <main className="p-8">
           {activeTab === 'overview' && (
             <div className="space-y-6">
+              {periodComparison && <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                <span className="font-semibold">{periodComparison.currentLabel}</span> ile <span className="font-semibold">{periodComparison.label}</span> karşılaştırılıyor.
+                {periodComparison.partial && <p className="mt-1 text-xs text-amber-700">Eksik dönem verisi: seçilen dönemde {periodComparison.currentCount}/{periodComparison.length}, önceki dönemde {periodComparison.previousCount}/{periodComparison.length} ay var. Farklar mevcut kayıtlar üzerinden hesaplanır.</p>}
+              </div>}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <KpiCard title="Ciro (KDV Dahil)" value={formatCurrency(overviewMetrics.totalRevenueIncVAT)}
+                <KpiCard comparison={comparisonFor('totalRevenueIncVAT')} title="Ciro (KDV Dahil)" value={formatCurrency(overviewMetrics.totalRevenueIncVAT)}
                   icon={DollarSign} iconColorClass="bg-indigo-50 text-indigo-600" valueColorClass="text-indigo-600"
                   subLabel="Satışlardan elde edilen toplam tutar" />
-                <KpiCard title="Brüt Kar" value={formatCurrency(overviewMetrics.totalGrossProfit)}
+                <KpiCard comparison={comparisonFor('totalGrossProfit')} title="Brüt Kar" value={formatCurrency(overviewMetrics.totalGrossProfit)}
                   icon={TrendingUp} iconColorClass="bg-blue-50 text-blue-600" valueColorClass="text-blue-600"
                   subLabel={`%${grossMarginRate.toFixed(1)} Marj (KDV Hariç Cirodan)`} />
-                <KpiCard title="Net Kar" value={formatCurrency(overviewMetrics.totalNetProfit)} icon={Wallet}
+                <KpiCard comparison={comparisonFor('totalNetProfit')} title="Net Kar" value={formatCurrency(overviewMetrics.totalNetProfit)} icon={Wallet}
                   iconColorClass={overviewMetrics.totalNetProfit >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}
                   valueColorClass={overviewMetrics.totalNetProfit >= 0 ? "text-emerald-600" : "text-red-600"}
                   subLabel={`%${netMarginRate.toFixed(1)} Net Marj`} />
-                <KpiCard title="Toplam Giderler"
+                <KpiCard comparison={comparisonFor('expenses', true)} title="Toplam Giderler"
                   value={formatCurrency(Math.abs(overviewMetrics.totalCommission) + Math.abs(overviewMetrics.totalShipping) + Math.abs(overviewMetrics.totalPenalty) + Math.abs(overviewMetrics.totalPlatformExpense) + overviewMetrics.totalMarketingExpense + overviewMetrics.totalOperatingExpense)}
                   icon={TrendingDown} iconColorClass="bg-red-50 text-red-600" valueColorClass="text-red-600"
                   subLabel="Komisyon, Kargo, Reklam, İşletme vb." />
@@ -666,55 +768,57 @@ function App() {
                     Gelir Tablosu
                   </h3>
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
+                    <div className="flex flex-wrap justify-between gap-x-3 py-2 border-b border-dashed border-slate-100">
                       <span className="text-slate-600 font-medium">Toplam Ciro (KDV Dahil)</span>
                       <span className="font-bold text-slate-800">{formatNumber(overviewMetrics.totalRevenueIncVAT)} TL</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
+                    <div className="w-full"><PeriodChange comparison={comparisonFor('totalRevenueIncVAT', false)} /></div></div>
+                    <div className="flex flex-wrap justify-between gap-x-3 py-2 border-b border-dashed border-slate-100">
                       <span className="text-red-500">(-) İade Ciro Kaybı</span>
                       <span className="font-semibold text-red-600">{formatNumber(overviewMetrics.returnLoss)} TL</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
+                    <div className="w-full"><PeriodChange comparison={comparisonFor('returnLoss', true)} /></div></div>
+                    <div className="flex flex-wrap justify-between gap-x-3 py-2 border-b border-dashed border-slate-100">
                       <span className="text-slate-600">Toplam Ciro (KDV Hariç)</span>
                       <span className="font-semibold text-slate-700">{formatNumber(overviewMetrics.totalRevenueExVAT)} TL</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
+                    <div className="w-full"><PeriodChange comparison={comparisonFor('totalRevenueExVAT', false)} /></div></div>
+                    <div className="flex flex-wrap justify-between gap-x-3 py-2 border-b border-dashed border-slate-100">
                       <span className="text-red-500">(-) Alış Maliyeti (COGS)</span>
                       <span className="font-semibold text-red-600">{formatNumber(overviewMetrics.totalCostOfGoods)} TL</span>
-                    </div>
+                    <div className="w-full"><PeriodChange comparison={comparisonFor('totalCostOfGoods', true)} /></div></div>
                     <div className="flex justify-between py-3 bg-blue-50 px-3 rounded-lg my-2 items-center">
                       <span className="text-blue-800 font-bold">BRÜT KAR</span>
                       <div className="text-right">
                         <span className="font-bold text-blue-800 block">{formatNumber(overviewMetrics.totalGrossProfit)} TL</span>
                         <span className="text-xs text-blue-600 font-medium">%{grossMarginRate.toFixed(1)}</span>
-                      </div>
+                      <PeriodChange comparison={comparisonFor('totalGrossProfit', false)} /></div>
                     </div>
-                    <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
+                    <div className="flex flex-wrap justify-between gap-x-3 py-2 border-b border-dashed border-slate-100">
                       <span className="text-red-500">(-) Operasyonel Giderler</span>
                       <span className="font-semibold text-red-500">
                         {formatNumber(Math.abs(overviewMetrics.totalCommission) + Math.abs(overviewMetrics.totalShipping) + Math.abs(overviewMetrics.totalPenalty) + Math.abs(overviewMetrics.totalPlatformExpense))} TL
                       </span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
+                    <div className="w-full"><PeriodChange comparison={operationalComparison} /></div></div>
+                    <div className="flex flex-wrap justify-between gap-x-3 py-2 border-b border-dashed border-slate-100">
                       <span className="text-red-500">(-) Reklam Gideri</span>
                       <span className="font-semibold text-red-500">{formatNumber(overviewMetrics.totalMarketingExpense)} TL</span>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-dashed border-slate-100">
+                    <div className="w-full"><PeriodChange comparison={comparisonFor('totalMarketingExpense', true)} /></div></div>
+                    <div className="flex flex-wrap justify-between gap-x-3 py-2 border-b border-dashed border-slate-100">
                       <span className="text-red-500">(-) İşletme Gideri</span>
                       <span className="font-semibold text-red-500">{formatNumber(overviewMetrics.totalOperatingExpense)} TL</span>
-                    </div>
+                    <div className="w-full"><PeriodChange comparison={comparisonFor('totalOperatingExpense', true)} /></div></div>
                     <div className={`flex justify-between py-4 ${overviewMetrics.totalNetProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'} px-3 rounded-lg mt-4 items-center`}>
                       <span className={`${overviewMetrics.totalNetProfit >= 0 ? 'text-emerald-800' : 'text-red-800'} font-bold`}>NET KAR</span>
                       <div className="text-right">
                         <span className={`font-bold ${overviewMetrics.totalNetProfit >= 0 ? 'text-emerald-800' : 'text-red-800'} text-lg block`}>{formatNumber(overviewMetrics.totalNetProfit)} TL</span>
                         <span className={`text-xs ${overviewMetrics.totalNetProfit >= 0 ? 'text-emerald-700' : 'text-red-700'} font-medium`}>%{netMarginRate.toFixed(1)}</span>
-                      </div>
+                      <PeriodChange comparison={comparisonFor('totalNetProfit', false)} /></div>
                     </div>
                   </div>
                 </div>
 
                 {/* Gider Dağılımı — yeni bileşen */}
                 <ExpenseBreakdownCard
+                  totalComparison={comparisonFor('expenses', true)}
+                  cogsComparison={comparisonFor('totalCostOfGoods', true)}
                   expenseData={expenseBreakdownData}
                   cogsValue={overviewMetrics.totalCostOfGoods}
                   formatNumber={formatNumber}
@@ -732,13 +836,14 @@ function App() {
                     </div>
                     <div className="rounded-3xl bg-slate-50 px-3 py-2 border border-slate-100 text-right">
                       <div className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Toplam Ciro</div>
-                      <div className="mt-1 text-lg font-semibold text-slate-900">{formatCurrency(channelRevenueData.reduce((s, i) => s + i.value, 0))} TL</div>
+                      <div className="mt-1 text-lg font-semibold text-slate-900">{formatCurrency(channelRevenueData.reduce((s, i) => s + i.value, 0))}</div>
+                      <PeriodChange comparison={comparisonFor('totalRevenueIncVAT')} />
                     </div>
                   </div>
                   <div className="space-y-3">
                     {channelRevenueData.map((item, idx) => {
                       const total = channelRevenueData.reduce((s, i) => s + i.value, 0);
-                      const percent = ((item.value / total) * 100).toFixed(1);
+                      const percent = (total > 0 ? (item.value / total) * 100 : 0).toFixed(1);
                       return (
                         <div key={item.name} className="rounded-3xl bg-slate-50 p-3 border border-slate-100">
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -747,10 +852,11 @@ function App() {
                               <span className="truncate text-sm font-semibold text-slate-800">{item.name}</span>
                             </div>
                             <div className="text-right">
-                              <div className="text-sm font-semibold text-slate-900">{formatCurrency(item.value)} TL</div>
+                              <div className="text-sm font-semibold text-slate-900">{formatCurrency(item.value)}</div>
                               <div className="text-[11px] text-slate-500">{percent}%</div>
                             </div>
                           </div>
+                          <PeriodChange comparison={channelComparison(item.name, item.value)} />
                           <div className="mt-3 h-2.5 w-full rounded-full bg-white border border-slate-200 overflow-hidden">
                             <div className="h-full rounded-full transition-all duration-300" style={{ width: `${percent}%`, backgroundColor: COLORS[idx % COLORS.length] }} />
                           </div>
@@ -765,6 +871,10 @@ function App() {
 
           {activeTab === 'channels' && (
             <div className="space-y-6">
+              {channelPeriodComparison && <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                <span className="font-semibold">{channelPeriodComparison.currentLabel}</span> ile <span className="font-semibold">{channelPeriodComparison.label}</span> karşılaştırılıyor.
+                {channelPeriodComparison.partial && <p className="mt-1 text-xs text-amber-700">Eksik dönem verisi: seçilen dönemde {channelPeriodComparison.currentCount}/{channelPeriodComparison.length}, önceki dönemde {channelPeriodComparison.previousCount}/{channelPeriodComparison.length} ay var. Farklar mevcut kayıtlar üzerinden hesaplanır.</p>}
+              </div>}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><TrendingUp size={24} /></div>
@@ -783,9 +893,9 @@ function App() {
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <KpiCard title="Toplam Ciro (Gelir)" value={formatCurrency(channelViewMetrics.totalRevenueIncVAT)}
+                <KpiCard comparison={channelMetricComparison(m => m.totalRevenueIncVAT)} title="Toplam Ciro (Gelir)" value={formatCurrency(channelViewMetrics.totalRevenueIncVAT)}
                   icon={DollarSign} iconColorClass="bg-gray-50 text-gray-300" valueColorClass="text-indigo-600" subLabel="KDV Dahil Satış Tutarı" />
-                <KpiCard title="Toplam Gider"
+                <KpiCard comparison={channelMetricComparison(m => Math.abs(m.totalCommission) + Math.abs(m.totalShipping) + m.totalCostOfGoods, true)} title="Toplam Gider"
                   value={formatCurrency(Math.abs(channelViewMetrics.totalCommission) + Math.abs(channelViewMetrics.totalShipping) + channelViewMetrics.totalCostOfGoods)}
                   icon={TrendingDown} iconColorClass="bg-gray-50 text-gray-300" valueColorClass="text-red-600" subLabel="Maliyet + Komisyon + Kargo" />
               </div>
@@ -794,10 +904,10 @@ function App() {
                   <div className="p-3 bg-purple-50 text-purple-600 rounded-xl mt-1"><Package size={24} /></div>
                   <div className="flex-1">
                     <p className="text-xs text-slate-500 font-bold uppercase tracking-wide mb-1">SİPARİŞ SAYISI</p>
-                    <p className="text-2xl font-bold text-slate-800 mb-2">{formatNumber(channelViewMetrics.deliveredOrderCount + channelViewMetrics.returnedOrderCount)}</p>
+                    <p className="text-2xl font-bold text-slate-800 mb-2">{formatNumber(channelViewMetrics.deliveredOrderCount + channelViewMetrics.returnedOrderCount)}</p><PeriodChange comparison={channelMetricComparison(m => m.deliveredOrderCount + m.returnedOrderCount, false, 'count')} />
                     <div className="flex flex-col text-xs space-y-1">
-                      <span className="text-emerald-600 font-medium flex items-center gap-1"><CheckCircle size={12}/> Teslim: {formatNumber(channelViewMetrics.deliveredOrderCount)}</span>
-                      <span className="text-red-500 font-medium flex items-center gap-1"><XCircle size={12}/> İade: {formatNumber(channelViewMetrics.returnedOrderCount)}</span>
+                      <span className="text-emerald-600 font-medium flex items-center gap-1"><CheckCircle size={12}/> Teslim: {formatNumber(channelViewMetrics.deliveredOrderCount)}</span><PeriodChange comparison={channelMetricComparison(m => m.deliveredOrderCount, false, 'count')} />
+                      <span className="text-red-500 font-medium flex items-center gap-1"><XCircle size={12}/> İade: {formatNumber(channelViewMetrics.returnedOrderCount)}</span><PeriodChange comparison={channelMetricComparison(m => m.returnedOrderCount, true, 'count')} />
                     </div>
                   </div>
                 </div>
@@ -805,10 +915,10 @@ function App() {
                   <div className="p-3 bg-blue-50 text-blue-600 rounded-xl mt-1"><Package size={24} /></div>
                   <div className="flex-1">
                     <p className="text-xs text-slate-500 font-bold uppercase tracking-wide mb-1">SATILAN ÜRÜN</p>
-                    <p className="text-2xl font-bold text-slate-800 mb-2">{formatNumber(channelViewMetrics.deliveredProductQty + channelViewMetrics.returnedProductQty)} Adet</p>
+                    <p className="text-2xl font-bold text-slate-800 mb-2">{formatNumber(channelViewMetrics.deliveredProductQty + channelViewMetrics.returnedProductQty)} Adet</p><PeriodChange comparison={channelMetricComparison(m => m.deliveredProductQty + m.returnedProductQty, false, 'count')} />
                     <div className="flex flex-col text-xs space-y-1">
-                      <span className="text-emerald-600 font-medium flex items-center gap-1"><CheckCircle size={12}/> Teslim: {formatNumber(channelViewMetrics.deliveredProductQty)}</span>
-                      <span className="text-red-500 font-medium flex items-center gap-1"><XCircle size={12}/> İade: {formatNumber(channelViewMetrics.returnedProductQty)}</span>
+                      <span className="text-emerald-600 font-medium flex items-center gap-1"><CheckCircle size={12}/> Teslim: {formatNumber(channelViewMetrics.deliveredProductQty)}</span><PeriodChange comparison={channelMetricComparison(m => m.deliveredProductQty, false, 'count')} />
+                      <span className="text-red-500 font-medium flex items-center gap-1"><XCircle size={12}/> İade: {formatNumber(channelViewMetrics.returnedProductQty)}</span><PeriodChange comparison={channelMetricComparison(m => m.returnedProductQty, true, 'count')} />
                     </div>
                   </div>
                 </div>
@@ -820,7 +930,7 @@ function App() {
                       % {(channelViewMetrics.deliveredOrderCount + channelViewMetrics.returnedOrderCount) > 0
                         ? ((channelViewMetrics.returnedOrderCount / (channelViewMetrics.deliveredOrderCount + channelViewMetrics.returnedOrderCount)) * 100).toFixed(1)
                         : 0}
-                    </p>
+                    </p><PeriodChange comparison={channelMetricComparison(returnRate, true, 'percent')} />
                   </div>
                 </div>
               </div>
@@ -845,9 +955,9 @@ function App() {
                         <React.Fragment key={idx}>
                           <tr className="hover:bg-slate-50 transition-colors">
                             <td className="px-6 py-3 font-medium text-slate-700">{cat.name}</td>
-                            <td className="px-6 py-3 text-right text-slate-600">{formatNumber(cat.qty)}</td>
-                            <td className="px-6 py-3 text-right font-bold text-slate-800">{formatCurrency(cat.revenue)}</td>
-                            <td className="px-6 py-3 text-right text-slate-500">%{channelViewMetrics.totalRevenueIncVAT > 0 ? ((cat.revenue / channelViewMetrics.totalRevenueIncVAT) * 100).toFixed(1) : 0}</td>
+                            <td className="px-6 py-3 text-right text-slate-600">{formatNumber(cat.qty)}<PeriodChange comparison={channelValueComparison(cat.qty, previousChannelDetails.categories[cat.name]?.qty ?? 0, false, 'count')} /></td>
+                            <td className="px-6 py-3 text-right font-bold text-slate-800">{formatCurrency(cat.revenue)}<PeriodChange comparison={channelValueComparison(cat.revenue, previousChannelDetails.categories[cat.name]?.revenue ?? 0, false, 'currency')} /></td>
+                            <td className="px-6 py-3 text-right text-slate-500">%{channelViewMetrics.totalRevenueIncVAT > 0 ? ((cat.revenue / channelViewMetrics.totalRevenueIncVAT) * 100).toFixed(1) : 0}<PeriodChange comparison={channelValueComparison(channelViewMetrics.totalRevenueIncVAT > 0 ? cat.revenue / channelViewMetrics.totalRevenueIncVAT * 100 : 0, channelPeriodComparison?.metrics && channelPeriodComparison.metrics.totalRevenueIncVAT > 0 ? (previousChannelDetails.categories[cat.name]?.revenue ?? 0) / channelPeriodComparison.metrics.totalRevenueIncVAT * 100 : 0, false, 'percent')} /></td>
                             <td className="px-6 py-3 text-right">
                               <button onClick={() => toggleCategory(cat.name)}
                                 className="text-indigo-600 hover:text-indigo-800 font-medium text-xs flex items-center justify-end gap-1 ml-auto">
@@ -866,9 +976,9 @@ function App() {
                                         <span className="w-5 h-5 rounded-full bg-white text-indigo-600 flex items-center justify-center text-xs font-bold shadow-sm border border-indigo-100">{pIdx + 1}</span>
                                         <span className="text-slate-700 truncate max-w-[400px]" title={prod.name}>{prod.name}</span>
                                       </div>
-                                      <div className="flex items-center gap-4">
-                                        <span className="text-slate-600 font-medium bg-white px-2 py-0.5 rounded border border-indigo-100">{prod.qty} Adet</span>
-                                        <span className="text-slate-800 font-bold w-[100px] text-right">{formatCurrency(prod.revenue)}</span>
+                                      <div className="flex flex-wrap items-start gap-4">
+                                        <div><span className="text-slate-600 font-medium bg-white px-2 py-0.5 rounded border border-indigo-100">{prod.qty} Adet</span><PeriodChange comparison={channelValueComparison(prod.qty, previousChannelDetails.categoryProducts[JSON.stringify([cat.name, prod.name])]?.qty ?? 0, false, 'count')} /></div>
+                                        <div><span className="text-slate-800 font-bold w-[100px] text-right">{formatCurrency(prod.revenue)}</span><PeriodChange comparison={channelValueComparison(prod.revenue, previousChannelDetails.categoryProducts[JSON.stringify([cat.name, prod.name])]?.revenue ?? 0, false, 'currency')} /></div>
                                       </div>
                                     </div>
                                   ))}
@@ -885,7 +995,7 @@ function App() {
               <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-6 border-b border-slate-100 flex items-center gap-2">
                   <div className="p-1.5 bg-emerald-100 rounded text-emerald-600"><DollarSign size={16}/></div>
-                  <h3 className="font-bold text-slate-800">En Yüksek Sepet Tutarları</h3>
+                  <div><h3 className="font-bold text-slate-800">En Yüksek Sepet Tutarları</h3><p className="mt-1 text-xs text-slate-400">Seçilen dönemin siparişleri; tekil siparişler dönemler arasında karşılaştırılmaz.</p></div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
@@ -930,8 +1040,8 @@ function App() {
                       {returnStats.byQty.length > 0 ? returnStats.byQty.map((item, idx) => (
                         <tr key={idx} className="hover:bg-slate-50 transition-colors">
                           <td className="px-6 py-3 font-medium text-slate-700 max-w-[300px] truncate" title={item.name}>{item.name}</td>
-                          <td className="px-6 py-3 text-right font-medium text-red-600">{formatNumber(item.qty)} Adet</td>
-                          <td className="px-6 py-3 text-right font-bold text-red-600">{formatCurrency(item.lostAmount)}</td>
+                          <td className="px-6 py-3 text-right font-medium text-red-600">{formatNumber(item.qty)} Adet<PeriodChange comparison={channelValueComparison(item.qty, previousChannelDetails.products[item.name]?.returnedQty ?? 0, true, 'count')} /></td>
+                          <td className="px-6 py-3 text-right font-bold text-red-600">{formatCurrency(item.lostAmount)}<PeriodChange comparison={channelValueComparison(item.lostAmount, previousChannelDetails.products[item.name]?.returnedRevenue ?? 0, true, 'currency')} /></td>
                         </tr>
                       )) : <tr><td colSpan={3} className="px-6 py-8 text-center text-slate-400">İade verisi bulunamadı.</td></tr>}
                     </tbody>
@@ -973,11 +1083,11 @@ function App() {
                           <tr key={idx} className="hover:bg-slate-50 transition-colors">
                             <td className="px-6 py-3 font-medium text-slate-700 max-w-[300px] truncate" title={item.name}>{item.name}</td>
                             <td className="px-6 py-3 text-slate-500 font-mono text-xs">{item.sku}</td>
-                            <td className="px-6 py-3 text-right font-medium text-slate-700">{formatNumber(item.deliveredQty)}</td>
-                            <td className="px-6 py-3 text-right font-medium text-emerald-600">{formatCurrency(item.deliveredRevenue)}</td>
-                            <td className="px-6 py-3 text-right font-medium text-slate-700">{formatNumber(item.returnedQty)}</td>
-                            <td className="px-6 py-3 text-right font-medium text-red-600">{formatCurrency(item.returnedRevenue)}</td>
-                            <td className="px-6 py-3 text-right font-bold text-slate-800 bg-slate-50/50">{formatCurrency(item.deliveredRevenue - item.returnedRevenue)}</td>
+                            <td className="px-6 py-3 text-right font-medium text-slate-700">{formatNumber(item.deliveredQty)}<PeriodChange comparison={channelValueComparison(item.deliveredQty, previousChannelDetails.products[item.name]?.deliveredQty ?? 0, false, 'count')} /></td>
+                            <td className="px-6 py-3 text-right font-medium text-emerald-600">{formatCurrency(item.deliveredRevenue)}<PeriodChange comparison={channelValueComparison(item.deliveredRevenue, previousChannelDetails.products[item.name]?.deliveredRevenue ?? 0, false, 'currency')} /></td>
+                            <td className="px-6 py-3 text-right font-medium text-slate-700">{formatNumber(item.returnedQty)}<PeriodChange comparison={channelValueComparison(item.returnedQty, previousChannelDetails.products[item.name]?.returnedQty ?? 0, true, 'count')} /></td>
+                            <td className="px-6 py-3 text-right font-medium text-red-600">{formatCurrency(item.returnedRevenue)}<PeriodChange comparison={channelValueComparison(item.returnedRevenue, previousChannelDetails.products[item.name]?.returnedRevenue ?? 0, true, 'currency')} /></td>
+                            <td className="px-6 py-3 text-right font-bold text-slate-800 bg-slate-50/50">{formatCurrency(item.deliveredRevenue - item.returnedRevenue)}<PeriodChange comparison={channelValueComparison(item.deliveredRevenue - item.returnedRevenue, (previousChannelDetails.products[item.name]?.deliveredRevenue ?? 0) - (previousChannelDetails.products[item.name]?.returnedRevenue ?? 0), false, 'currency')} /></td>
                           </tr>
                         )) : <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-400">Aradığınız kriterlere uygun ürün bulunamadı.</td></tr>}
                       </tbody>
