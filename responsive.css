@@ -4,7 +4,11 @@
 .report-app .table-scroll:focus-visible { outline: 2px solid #818cf8; outline-offset: -2px; }
 .mobile-navigation summary::-webkit-details-marker { display: none; }
 @media (max-width: 767px) {
-  .report-app { display: block; width: 100%; }
+  .report-app.report-app { display: flex; flex-direction: column; width: 100%; min-width: 0; }
+  .report-app > .mobile-navigation { width: 100%; flex: none; }
+  .report-app > .report-content { width: 100%; min-width: 0; margin-left: 0; }
+  .report-app .mobile-navigation > summary { display: flex; justify-content: space-between; gap: 12px; }
+  .report-app .mobile-navigation > summary > :last-child { font-size: 12px; text-align: right; }
   .report-app header { position: relative; }
   .report-app main { padding: 16px 12px; }
   .report-app main > .space-y-6 > * + * { margin-top: 16px; }

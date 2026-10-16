@@ -667,10 +667,10 @@ function App() {
   );
 
   return (
-    <div className="report-app min-h-screen bg-[#f8fafc] font-inter flex text-slate-800">
+    <div className="report-app min-h-screen bg-[#f8fafc] font-inter flex flex-col md:flex-row text-slate-800">
       {renderSidebar()}
       <details className="mobile-navigation border-b border-slate-200 bg-white md:hidden"><summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold text-slate-700"><span>☰ Menü</span><span className="text-slate-400">E-Ticaret Raporu</span></summary>{renderSidebar(true)}</details>
-      <div className="min-w-0 flex-1 md:ml-64">
+      <div className="report-content w-full min-w-0 flex-1 md:ml-64">
         <header className="bg-white border-b border-slate-200 sticky top-0 z-20 px-4 sm:px-8 py-4 sm:py-5 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 shadow-sm">
           <div>
             <h2 className="text-xl font-bold text-slate-900">
